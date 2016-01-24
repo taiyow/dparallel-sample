@@ -1,0 +1,20 @@
+GIT
+  remote: git://github.com/taiyow/parallel.git
+  revision: de24a3e5254db45a461f3a84ec0c68ae271fc890
+  specs:
+    parallel (1.6.1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ruby-progressbar (1.7.5)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  parallel!
+  ruby-progressbar
+
+BUNDLED WITH
+   1.11.2
