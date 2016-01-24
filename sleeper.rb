@@ -19,10 +19,14 @@ count = (ARGV[0] || 8).to_i
 $stats = Array.new(count)
 
 parallel_options = {
-  in_processes: 100,
+  in_processes: 5,
   progress: "#{count}",
   finish: Proc.new{ |_,index,result| $stats[index] = result },
+  max_rate: 20,
+  begin: Proc.new{ $start_time = Time.now },
+  end: Proc.new{ $end_time = Time.now },
 }
+
 setting = YAML.load(File.read(DISTRIBUTE_CONFIG))
 setting.each do |key,val|
   parallel_options[key.to_sym] = val
@@ -32,9 +36,8 @@ end
 begin
   Parallel.each(1..count, parallel_options) do |n|
     realtime = Benchmark.realtime { 
-      File.open("log", "a") do |f|
-        f.write "#{Time.now.strftime('%Y/%m/%d %T')}\t#{$$}\t#{n.inspect}\n"
-      end
+      now = Time.now.strftime("%T")
+      STDERR.write "#{now} worker ##$$ running\n"
       sleep 0.1
     }
     [ $$, realtime ]
@@ -49,8 +52,10 @@ rescue Errno::ECONNRESET
   die "ECONNRESET: lost server connetion"
 end
 
+elapsed = $end_time - $start_time
+
 avg = $stats.map{ |worker,diff| diff}.reduce(:+) / $stats.size
-printf "total: %4d calls, %6.2f call/seconds\n", $stats.size, 1/avg
+printf "total: %4d calls, %6.2f call/seconds\n", $stats.size, $stats.size/elapsed
 
 worker_stats = {}
 $stats.each do |worker,diff|
@@ -63,5 +68,5 @@ worker_stats.each_with_index do |(worker,diffs),index|
   count = diffs.size
   sum = diffs.reduce(:+)
   avg = sum / count
-  printf "[%#{index_width}d] worker #{worker}: %4d calls, %6.2f call/seconds\n", index, count, 1/avg
+  printf "[%#{index_width}d] worker #{worker}: %4d calls, avg: %.6f sec\n", index, count, avg
 end
